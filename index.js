@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const bcrypt = require('bcrypt');
 const pool = require('./db');
+const jwt = require('jsonwebtoken');
 
 app.use(express.json());
 
@@ -57,7 +58,13 @@ app.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  res.json({ message: 'Login successful', userId: user.id });
+  const token = jwt.sign(
+  { userId: user.id },
+  process.env.JWT_SECRET,
+  { expiresIn: '1h' }
+);
+
+res.json({ message: 'Login successful', token });
 });
 
 app.listen(3000, () => {
