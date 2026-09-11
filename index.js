@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 
 app.get('/', (req, res) => {
-    res.json ({ message: 'Secure Job Application API is running (v2)' });
+    res.json ({ message: 'Secure Job Application API is running' });
 })
 
 app.listen(3000, () => {
