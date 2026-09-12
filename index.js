@@ -93,13 +93,40 @@ app.post('/applications', authenticateToken, async (req, res) => {
 });
 
 app.get('/applications', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT * FROM job_applications WHERE user_id = $1 ORDER BY created_at DESC',
-      [req.userId]
-    );
+  const { status, company, page = 1, limit = 10 } = req.query;
 
-    res.json(result.rows);
+  const conditions = ['user_id = $1'];
+  const values = [req.userId];
+
+  if (status) {
+    values.push(status);
+    conditions.push(`status = $${values.length}`);
+  }
+
+  if (company) {
+    values.push(`%${company}%`);
+    conditions.push(`company ILIKE $${values.length}`);
+  }
+
+  const offset = (page - 1) * limit;
+  values.push(limit, offset);
+
+  const whereClause = conditions.join(' AND ');
+  const query = `
+    SELECT * FROM job_applications
+    WHERE ${whereClause}
+    ORDER BY created_at DESC
+    LIMIT $${values.length - 1} OFFSET $${values.length}
+  `;
+
+  try {
+    const result = await pool.query(query, values);
+
+    res.json({
+      page: Number(page),
+      limit: Number(limit),
+      results: result.rows,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong' });
@@ -131,7 +158,7 @@ app.patch('/applications/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
-// ↑↑↑ NEW ROUTE ENDS HERE ↑↑↑
+
 
 app.listen(3000, () => {
   console.log('Server is running on port http://localhost:3000');
