@@ -72,6 +72,27 @@ app.get('/me', authenticateToken, (req, res) => {
 res.json({ message: 'Login successful', token });
 });
 
+
+app.post('/applications', authenticateToken, async (req, res) => {
+  const { company, role } = req.body;
+
+  if (!company || !role) {
+    return res.status(400).json({ error: 'Company and role are required' });
+  }
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO job_applications (user_id, company, role) VALUES ($1, $2, $3) RETURNING *',
+      [req.userId, company, role]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
 app.listen(3000, () => {
   console.log('Server is running on port http://localhost:3000');
 });
