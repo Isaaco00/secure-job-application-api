@@ -60,18 +60,17 @@ app.post('/login', async (req, res) => {
   }
 
   const token = jwt.sign(
-  { userId: user.id },
-  process.env.JWT_SECRET,
-  { expiresIn: '1h' }
-);
+    { userId: user.id },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  res.json({ message: 'Login successful', token });
+});
 
 app.get('/me', authenticateToken, (req, res) => {
   res.json({ userId: req.userId });
 });
-
-res.json({ message: 'Login successful', token });
-});
-
 
 app.post('/applications', authenticateToken, async (req, res) => {
   const { company, role } = req.body;
@@ -87,6 +86,20 @@ app.post('/applications', authenticateToken, async (req, res) => {
     );
 
     res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
+app.get('/applications', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM job_applications WHERE user_id = $1 ORDER BY created_at DESC',
+      [req.userId]
+    );
+
+    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong' });
