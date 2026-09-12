@@ -106,6 +106,7 @@ app.get('/applications', authenticateToken, async (req, res) => {
   }
 });
 
+
 app.patch('/applications/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -134,6 +135,26 @@ app.patch('/applications/:id', authenticateToken, async (req, res) => {
 
 app.listen(3000, () => {
   console.log('Server is running on port http://localhost:3000');
+});
+
+app.delete('/applications/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM job_applications WHERE id = $1 AND user_id = $2 RETURNING *',
+      [id, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    res.json({ message: 'Application deleted', application: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
 });
 
 app.listen(3000, () => {
