@@ -106,6 +106,36 @@ app.get('/applications', authenticateToken, async (req, res) => {
   }
 });
 
+app.patch('/applications/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ error: 'Status is required' });
+  }
+
+  try {
+    const result = await pool.query(
+      'UPDATE job_applications SET status = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
+      [status, id, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+// ↑↑↑ NEW ROUTE ENDS HERE ↑↑↑
+
+app.listen(3000, () => {
+  console.log('Server is running on port http://localhost:3000');
+});
+
 app.listen(3000, () => {
   console.log('Server is running on port http://localhost:3000');
 });
