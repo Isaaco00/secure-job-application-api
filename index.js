@@ -3,6 +3,7 @@ const app = express();
 const bcrypt = require('bcrypt');
 const pool = require('./db');
 const jwt = require('jsonwebtoken');
+const authenticateToken = require('./middleware/auth');
 
 app.use(express.json());
 
@@ -63,6 +64,10 @@ app.post('/login', async (req, res) => {
   process.env.JWT_SECRET,
   { expiresIn: '1h' }
 );
+
+app.get('/me', authenticateToken, (req, res) => {
+  res.json({ userId: req.userId });
+});
 
 res.json({ message: 'Login successful', token });
 });
