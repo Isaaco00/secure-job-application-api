@@ -173,3 +173,20 @@ npm run dev
 ```
 
 The API will be running at `http://localhost:3000`.
+
+## Security & Architecture Notes
+
+- **Passwords are never stored in plain text** — bcrypt hashes passwords with a per-password random salt before storage; the original password cannot be recovered from the stored hash.
+- **Parameterized queries throughout** — all SQL queries use placeholders (`$1`, `$2`, ...) rather than string concatenation, preventing SQL injection regardless of what a client submits.
+- **Ownership is enforced at the database level, not just the application level** — every update/delete query includes `WHERE ... AND user_id = $x`, so even a bug elsewhere in the code couldn't accidentally let one user modify another's data.
+- **Generic error messages on authentication failure** — login returns the same "Invalid email or password" message whether the email doesn't exist or the password is wrong, preventing user enumeration attacks.
+- **JWTs are short-lived (1 hour)** — limiting the window of misuse if a token is ever leaked or stolen.
+- **Environment variables for all secrets** — database credentials and the JWT signing secret are never hardcoded, and `.env` is excluded from version control via `.gitignore`.
+
+## Future Improvements
+
+- Refresh tokens, so users aren't logged out every hour without a graceful re-authentication flow
+- Rate limiting on `/login` and `/register` to slow down brute-force attempts
+- Email verification on registration
+- Automated test suite (unit + integration tests)
+- Role-based access control, if this were extended to support admin-level users
