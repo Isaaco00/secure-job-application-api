@@ -23,6 +23,30 @@ describe('POST /register', () => {
     expect(response.body.email).toBe(uniqueEmail);
     expect(response.body.password_hash).toBeUndefined();
   });
+
+  it('should reject registration with missing fields', async () => {
+    const response = await request(app)
+      .post('/register')
+      .send({ email: 'incomplete@example.com' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Email and password are required');
+  });
+
+  it('should reject registration with a duplicate email', async () => {
+    const duplicateEmail = `dup_${Date.now()}@example.com`;
+
+    await request(app)
+      .post('/register')
+      .send({ email: duplicateEmail, password: 'testpassword123' });
+
+    const response = await request(app)
+      .post('/register')
+      .send({ email: duplicateEmail, password: 'testpassword123' });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error).toBe('Email already registered');
+  });
 });
 
 afterAll(async () => {
