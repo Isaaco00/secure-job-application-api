@@ -88,6 +88,54 @@ describe('POST /login and protected routes', () => {
   });
 });
 
+describe('Job application ownership', () => {
+  async function createUserAndToken() {
+    const email = `owner_${Date.now()}_${Math.random()}@example.com`;
+    const password = 'testpassword123';
+
+    await request(app).post('/register').send({ email, password });
+    const loginResponse = await request(app).post('/login').send({ email, password });
+
+    return loginResponse.body.token;
+  }
+
+  it('should not allow one user to see another user\'s applications', async () => {
+    const tokenA = await createUserAndToken();
+    const tokenB = await createUserAndToken();
+
+    await request(app)
+      .post('/applications')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ company: 'CompanyA', role: 'RoleA' });
+
+    const responseB = await request(app)
+      .get('/applications')
+      .set('Authorization', `Bearer ${tokenB}`);
+
+    const companies = responseB.body.results.map((app) => app.company);
+    expect(companies).not.toContain('CompanyA');
+  });
+
+  it('should not allow one user to update another user\'s application', async () => {
+    const tokenA = await createUserAndToken();
+    const tokenB = await createUserAndToken();
+
+    const createResponse = await request(app)
+      .post('/applications')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ company: 'CompanyC', role: 'RoleC' });
+
+    const applicationId = createResponse.body.id;
+
+    const updateAttempt = await request(app)
+      .patch(`/applications/${applicationId}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ status: 'rejected' });
+
+    expect(updateAttempt.status).toBe(404);
+  });
+});
+
 afterAll(async () => {
   await pool.end();
 });
