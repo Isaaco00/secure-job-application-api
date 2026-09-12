@@ -49,6 +49,45 @@ describe('POST /register', () => {
   });
 });
 
+describe('POST /login and protected routes', () => {
+  it('should log in and access /me with a valid token', async () => {
+    const email = `login_${Date.now()}@example.com`;
+    const password = 'testpassword123';
+
+    await request(app).post('/register').send({ email, password });
+
+    const loginResponse = await request(app)
+      .post('/login')
+      .send({ email, password });
+
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.body.token).toBeDefined();
+
+    const token = loginResponse.body.token;
+
+    const meResponse = await request(app)
+      .get('/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(meResponse.status).toBe(200);
+    expect(meResponse.body.userId).toBeDefined();
+  });
+
+  it('should reject /me with no token', async () => {
+    const response = await request(app).get('/me');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('should reject /me with an invalid token', async () => {
+    const response = await request(app)
+      .get('/me')
+      .set('Authorization', 'Bearer invalidtoken123');
+
+    expect(response.status).toBe(403);
+  });
+});
+
 afterAll(async () => {
   await pool.end();
 });
